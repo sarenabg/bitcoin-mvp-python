@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Bitcoin Block Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pulse {
+            width: 10px;
+            height: 10px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .block-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .block-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 4px solid #4ade80;
+            transition: transform 0.2s;
+        }
+
+        .block-item:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .block-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .block-index {
+            font-size: 1.2em;
+            color: #4ade80;
+        }
+
+        .block-hash {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            opacity: 0.8;
+            word-break: break-all;
+        }
+
+        .block-info {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .tx-item {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .coinbase {
+            background: rgba(250, 204, 21, 0.2);
+            border-left: 3px solid #facc15;
+        }
+
+        .auto-refresh {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .tx-detail {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #4ade80;
+        }
+
+        .tx-header {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #4ade80;
+        }
+
+        .tx-section {
+            margin: 10px 0;
+        }
+
+        .tx-section-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            opacity: 0.9;
+        }
+
+        .address-item {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 8px;
+            border-radius: 5px;
+            margin: 5px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .amount {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .arrow {
+            text-align: center;
+            font-size: 1.5em;
+            margin: 10px 0;
+            color: #facc15;
+        }
+
+        .block-item {
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>⛏️ Mini Bitcoin Explorer</h1>
+        <p class="subtitle">Real-time blockchain visualization</p>
+
+        <div class="stats-grid" id="stats">
+            <div class="stat-card">
+                <div class="stat-label">Chain Height</div>
+                <div class="stat-value" id="chain-height">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Blocks</div>
+                <div class="stat-value" id="total-blocks">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Supply</div>
+                <div class="stat-value" id="total-supply">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Mempool</div>
+                <div class="stat-value" id="mempool-size">-</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">
+                <span class="pulse"></span>
+                Recent Blocks
+            </div>
+            <div class="block-list" id="recent-blocks">
+                <div class="loading">Loading blocks...</div>
+            </div>
+            <div class="auto-refresh">Auto-refreshing every 3 seconds</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">
+                Mempool (Pending Transactions)
+            </div>
+            <div id="mempool-txs">
+                <div class="loading">Loading mempool...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Block Details Modal -->
+    <div class="modal" id="blockModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Block Details</div>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalBody">
+                <div class="loading">Loading block details...</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                document.getElementById('chain-height').textContent = data.chain_height;
+                document.getElementById('total-blocks').textContent = data.total_blocks;
+                document.getElementById('total-supply').textContent = data.total_supply.toLocaleString();
+                document.getElementById('mempool-size').textContent = data.mempool_size;
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+            }
+        }
+
+        async function fetchRecentBlocks() {
+            try {
+                const response = await fetch('/api/recent_blocks');
+                const blocks = await response.json();
+                const container = document.getElementById('recent-blocks');
+
+                if (blocks.length === 0) {
+                    container.innerHTML = '<div class="loading">No blocks yet</div>';
+                    return;
+                }
+
+                container.innerHTML = blocks.map(block => `
+                    <div class="block-item" onclick="showBlockDetails(${block.index})">
+                        <div class="block-header">
+                            <span class="block-index">Block #${block.index}</span>
+                            <span>${new Date(block.timestamp * 1000).toLocaleTimeString()}</span>
+                        </div>
+                        <div class="block-hash">${block.hash}</div>
+                        <div class="block-info">
+                            <span>Transactions: ${block.tx_count}</span>
+                            <span>Nonce: ${block.nonce}</span>
+                            <span style="opacity: 0.7;">Click to view details →</span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error fetching blocks:', error);
+            }
+        }
+
+        async function showBlockDetails(blockIndex) {
+            const modal = document.getElementById('blockModal');
+            const modalBody = document.getElementById('modalBody');
+            const modalTitle = document.getElementById('modalTitle');
+
+            modal.classList.add('active');
+            modalTitle.textContent = `Block #${blockIndex} Details`;
+            modalBody.innerHTML = '<div class="loading">Loading block details...</div>';
+
+            try {
+                const response = await fetch(`/api/block/${blockIndex}`);
+                const block = await response.json();
+
+                let html = `
+                    <div style="margin-bottom: 20px;">
+                        <div><strong>Hash:</strong> <span style="font-family: monospace; font-size: 0.85em;">${block.hash}</span></div>
+                        <div><strong>Previous Hash:</strong> <span style="font-family: monospace; font-size: 0.85em;">${block.prev_hash}</span></div>
+                        <div><strong>Timestamp:</strong> ${new Date(block.timestamp * 1000).toLocaleString()}</div>
+                        <div><strong>Nonce:</strong> ${block.nonce}</div>
+                    </div>
+                    <h3 style="margin: 20px 0 10px 0;">Transactions (${block.transactions.length})</h3>
+                `;
+
+                block.transactions.forEach((tx, idx) => {
+                    html += `<div class="tx-detail ${tx.is_coinbase ? 'coinbase' : ''}">`;
+                    html += `<div class="tx-header">${tx.is_coinbase ? '⛏️ Coinbase (Mining Reward)' : `Transaction ${idx + 1}`}</div>`;
+                    html += `<div style="font-family: monospace; font-size: 0.8em; opacity: 0.8; margin-bottom: 10px;">TXID: ${tx.txid.substring(0, 32)}...</div>`;
+
+                    if (tx.is_coinbase) {
+                        // Coinbase transaction - no inputs, just mining reward
+                        html += `<div class="tx-section">`;
+                        html += `<div class="tx-section-title">Mining Reward:</div>`;
+                        tx.outputs.forEach(out => {
+                            html += `<div class="address-item">`;
+                            html += `<div>To: ${out.address.substring(0, 16)}...${out.address.substring(out.address.length - 8)}</div>`;
+                            html += `<div class="amount">+${out.value} coins</div>`;
+                            html += `</div>`;
+                        });
+                        html += `</div>`;
+                    } else {
+                        // Regular transaction
+                        html += `<div class="tx-section">`;
+                        html += `<div class="tx-section-title">From (Inputs):</div>`;
+                        tx.inputs.forEach(inp => {
+                            html += `<div class="address-item">`;
+                            html += `Previous TX: ${inp.txid.substring(0, 16)}... (output #${inp.index})`;
+                            html += `</div>`;
+                        });
+                        html += `</div>`;
+
+                        html += `<div class="arrow">↓</div>`;
+
+                        html += `<div class="tx-section">`;
+                        html += `<div class="tx-section-title">To (Outputs):</div>`;
+                        tx.outputs.forEach((out, outIdx) => {
+                            html += `<div class="address-item">`;
+                            html += `<div>To: ${out.address.substring(0, 16)}...${out.address.substring(out.address.length - 8)}</div>`;
+                            html += `<div class="amount">+${out.value} coins</div>`;
+                            html += `</div>`;
+                        });
+                        html += `</div>`;
+
+                        // Calculate total amount
+                        const totalOut = tx.outputs.reduce((sum, out) => sum + out.value, 0);
+                        html += `<div style="margin-top: 10px; font-weight: bold; text-align: right;">Total: ${totalOut} coins</div>`;
+                    }
+
+                    html += `</div>`;
+                });
+
+                modalBody.innerHTML = html;
+            } catch (error) {
+                console.error('Error fetching block details:', error);
+                modalBody.innerHTML = '<div class="loading">Error loading block details</div>';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('blockModal').classList.remove('active');
+        }
+
+        // Close modal on outside click
+        document.getElementById('blockModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+
+        async function fetchMempool() {
+            try {
+                const response = await fetch('/api/mempool');
+                const txs = await response.json();
+                const container = document.getElementById('mempool-txs');
+
+                if (txs.length === 0) {
+                    container.innerHTML = '<div class="loading">No pending transactions</div>';
+                    return;
+                }
+
+                container.innerHTML = txs.map(tx => `
+                    <div class="tx-item">
+                        <div><strong>TXID:</strong> ${tx.txid.substring(0, 16)}...</div>
+                        <div>Inputs: ${tx.inputs} | Outputs: ${tx.outputs} | ${new Date(tx.timestamp * 1000).toLocaleTimeString()}</div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error fetching mempool:', error);
+            }
+        }
+
+        function refreshAll() {
+            fetchStats();
+            fetchRecentBlocks();
+            fetchMempool();
+        }
+
+        // Initial load
+        refreshAll();
+
+        // Auto-refresh every 3 seconds
+        setInterval(refreshAll, 3000);
+
+        // Check for URL parameters to auto-open a block
+        const urlParams = new URLSearchParams(window.location.search);
+        const blockParam = urlParams.get('block');
+        if (blockParam) {
+            const blockIndex = parseInt(blockParam);
+            if (!isNaN(blockIndex)) {
+                // Wait a moment for the page to load, then open the block
+                setTimeout(() => showBlockDetails(blockIndex), 1000);
+            }
+        }
+    </script>
+</body>
+
+</html>
+```

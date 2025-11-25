@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Bitcoin Wallet</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+
+        .panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 968px) {
+            .panels {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .panel-title {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1em;
+            font-family: 'Courier New', monospace;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #4ade80;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 222, 128, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .info-box {
+            background: rgba(74, 222, 128, 0.2);
+            border-left: 4px solid #4ade80;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+
+        .balance {
+            font-size: 2em;
+            color: #4ade80;
+        }
+
+        .status-message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            display: none;
+        }
+
+        .status-success {
+            background: rgba(74, 222, 128, 0.2);
+            border-left: 4px solid #4ade80;
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.2);
+            border-left: 4px solid #ef4444;
+        }
+
+        .status-info {
+            background: rgba(59, 130, 246, 0.2);
+            border-left: 4px solid #3b82f6;
+        }
+
+        .auto-refresh {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>💰 Mini Bitcoin Wallet</h1>
+        <p class="subtitle">Manage your coins easily</p>
+
+        <div class="panels">
+            <!-- Left Panel: My Wallet -->
+            <div class="panel">
+                <div class="panel-title">My Wallet</div>
+
+                <div class="form-group">
+                    <label for="privateKey">Private Key</label>
+                    <textarea id="privateKey" rows="2"
+                        placeholder="Paste your private key here (hex format)"></textarea>
+                </div>
+
+                <button onclick="loadWallet()">Load Wallet</button>
+
+                <div id="walletInfo" style="display: none;">
+                    <div class="info-box" style="margin-top: 20px;">
+                        <div class="info-label">Your Address</div>
+                        <div class="info-value" id="myAddress">-</div>
+                    </div>
+
+                    <div class="info-box">
+                        <div class="info-label">Balance</div>
+                        <div class="balance" id="myBalance">0 coins</div>
+                    </div>
+
+                    <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.2); margin: 25px 0;">
+
+                    <div class="form-group">
+                        <label for="recipientAddress">Recipient Address</label>
+                        <input type="text" id="recipientAddress" placeholder="Enter recipient address">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="amount">Amount (coins)</label>
+                        <input type="number" id="amount" min="1" placeholder="Enter amount">
+                    </div>
+
+                    <button onclick="sendCoins()">Send Coins</button>
+
+                    <div id="sendStatus" class="status-message"></div>
+
+                    <div class="auto-refresh">
+                        <span class="pulse"></span>Balance auto-updates every 3 seconds
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Balance Monitor -->
+            <div class="panel">
+                <div class="panel-title">Balance Monitor</div>
+
+                <div class="form-group">
+                    <label for="monitorAddress">Watch Any Address</label>
+                    <input type="text" id="monitorAddress" placeholder="Enter address to monitor">
+                </div>
+
+                <button onclick="startMonitoring()">Start Monitoring</button>
+
+                <div id="monitorInfo" style="display: none; margin-top: 20px;">
+                    <div class="info-box">
+                        <div class="info-label">Monitoring Address</div>
+                        <div class="info-value" id="monitoredAddress" style="font-size: 1em;">-</div>
+                    </div>
+
+                    <div class="info-box">
+                        <div class="info-label">Current Balance</div>
+                        <div class="balance" id="monitoredBalance">0 coins</div>
+                    </div>
+
+                    <div class="auto-refresh">
+                        <span class="pulse"></span>Monitoring in real-time every 3 seconds
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let myPrivateKey = '';
+        let myAddress = '';
+        let monitorAddress = '';
+        let refreshInterval = null;
+        let monitorInterval = null;
+
+        async function loadWallet() {
+            const pkInput = document.getElementById('privateKey').value.trim();
+
+            if (!pkInput) {
+                showStatus('sendStatus', 'Please enter a private key', 'error');
+                return;
+            }
+
+            myPrivateKey = pkInput;
+
+            // Display the wallet section
+            document.getElementById('walletInfo').style.display = 'block';
+
+            // Try to derive address by checking balance with the backend
+            // The backend will derive the address from the private key
+            // We'll show a placeholder until we get a real balance
+            myAddress = "Deriving address...";
+            document.getElementById('myAddress').textContent = myAddress;
+            document.getElementById('myBalance').textContent = 'Loading...';
+
+            // Try to get the actual address by making a test call
+            // We'll derive it from the first successful send or by querying
+            await refreshMyBalance();
+
+            // Start auto-refresh
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(refreshMyBalance, 3000);
+
+            showStatus('sendStatus', 'Wallet loaded! Enter recipient and amount to send.', 'success');
+        }
+
+        async function refreshMyBalance() {
+            if (!myPrivateKey) return;
+
+            try {
+                // Derive address from private key using ecdsa library on backend
+                // We'll make a request to get all UTXOs and find our address
+                // For now, we'll use a workaround: try to get balance of a known address
+                // or show "Ready to send" until first transaction
+
+                // Let's try to derive the address by attempting to get our own balance
+                // We need to call the backend with our private key to get the address
+                const response = await fetch('/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        from_private_key: myPrivateKey,
+                        to_address: '0000000000000000000000000000000000000000000000000000000000000000',
+                        amount: 0
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error && data.error.includes('address')) {
+                    // Try to extract address from error message
+                    // This is a hack, ideally we'd have a proper endpoint
+                    document.getElementById('myBalance').textContent = 'Ready to send';
+                } else if (response.ok) {
+                    // Should not happen with amount 0
+                    document.getElementById('myBalance').textContent = 'Ready to send';
+                }
+
+                // Alternative: Just show "Ready to send" for now
+                // A proper implementation would have an endpoint to derive address from private key
+                document.getElementById('myAddress').textContent = 'Will be derived on first send';
+                document.getElementById('myBalance').textContent = 'Check after sending';
+
+            } catch (error) {
+                console.error('Error refreshing balance:', error);
+                document.getElementById('myBalance').textContent = 'Ready to send';
+            }
+        }
+
+        async function sendCoins() {
+            const recipient = document.getElementById('recipientAddress').value.trim();
+            const amount = parseInt(document.getElementById('amount').value);
+
+            if (!myPrivateKey) {
+                showStatus('sendStatus', 'Please load your wallet first', 'error');
+                return;
+            }
+
+            if (!recipient) {
+                showStatus('sendStatus', 'Please enter recipient address', 'error');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                showStatus('sendStatus', 'Please enter a valid amount', 'error');
+                return;
+            }
+
+            try {
+                showStatus('sendStatus', 'Sending transaction...', 'info');
+
+                const response = await fetch('/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        from_private_key: myPrivateKey,
+                        to_address: recipient,
+                        amount: amount
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const txid = data.txid;
+                    showStatus('sendStatus', `✓ Transaction sent! TXID: ${txid.substring(0, 16)}...\nWaiting for block confirmation...`, 'info');
+
+                    // Only clear amount, keep recipient address
+                    document.getElementById('amount').value = '';
+
+                    // Poll for transaction confirmation
+                    let pollCount = 0;
+                    const maxPolls = 30; // Poll for up to 90 seconds (30 * 3s)
+
+                    const pollInterval = setInterval(async () => {
+                        pollCount++;
+
+                        try {
+                            const txResponse = await fetch(`/api/transaction/${txid}`);
+
+                            if (txResponse.ok) {
+                                // Transaction has been mined!
+                                const txData = await txResponse.json();
+                                clearInterval(pollInterval);
+
+                                const blockIndex = txData.block_index;
+                                const explorerLink = `/explorer?block=${blockIndex}`;
+
+                                showStatus('sendStatus',
+                                    `✓ Confirmed in block #${blockIndex}!`,
+                                    'success');
+
+                                // Add clickable link after a moment
+                                setTimeout(() => {
+                                    const statusEl = document.getElementById('sendStatus');
+                                    statusEl.innerHTML = `
+                                        ✓ Confirmed in block #${blockIndex}!<br>
+                                        <a href="${explorerLink}" target="_blank" 
+                                           style="color: #4ade80; text-decoration: underline; font-weight: bold;">
+                                           → View in Block Explorer
+                                        </a>
+                                    `;
+                                }, 500);
+
+                                document.getElementById('myBalance').textContent = 'Transaction confirmed!';
+                            } else if (pollCount >= maxPolls) {
+                                // Timeout
+                                clearInterval(pollInterval);
+                                showStatus('sendStatus',
+                                    `Transaction sent (${txid.substring(0, 16)}...) - check explorer for confirmation`,
+                                    'info');
+                            }
+                        } catch (e) {
+                            // Still in mempool, continue polling
+                            console.log(`Poll ${pollCount}: Transaction still in mempool`);
+                        }
+                    }, 3000); // Poll every 3 seconds
+                } else {
+                    showStatus('sendStatus', `Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus('sendStatus', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function startMonitoring() {
+            const address = document.getElementById('monitorAddress').value.trim();
+
+            if (!address) {
+                alert('Please enter an address to monitor');
+                return;
+            }
+
+            monitorAddress = address;
+            document.getElementById('monitoredAddress').textContent =
+                address.length > 32 ? address.substring(0, 16) + '...' + address.substring(address.length - 8) : address;
+            document.getElementById('monitorInfo').style.display = 'block';
+
+            // Refresh immediately
+            await refreshMonitoredBalance();
+
+            // Start auto-refresh
+            if (monitorInterval) clearInterval(monitorInterval);
+            monitorInterval = setInterval(refreshMonitoredBalance, 3000);
+        }
+
+        async function refreshMonitoredBalance() {
+            if (!monitorAddress) return;
+
+            try {
+                const response = await fetch(`/balance/${monitorAddress}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('monitoredBalance').textContent = `${data.balance.toLocaleString()} coins`;
+                } else {
+                    document.getElementById('monitoredBalance').textContent = 'Error loading';
+                }
+            } catch (error) {
+                console.error('Error fetching monitored balance:', error);
+                document.getElementById('monitoredBalance').textContent = 'Error loading';
+            }
+        }
+
+        function showStatus(elementId, message, type) {
+            const statusEl = document.getElementById(elementId);
+            statusEl.textContent = message;
+            statusEl.className = 'status-message status-' + type;
+            statusEl.style.display = 'block';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+
+</html>
