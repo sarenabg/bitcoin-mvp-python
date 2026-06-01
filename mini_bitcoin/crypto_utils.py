@@ -36,5 +36,5 @@ def verify_signature(public_key_bytes: bytes, data: bytes, signature_hex: str) -
         vk = ecdsa.VerifyingKey.from_string(public_key_bytes, curve=ecdsa.SECP256k1)
         sig = bytes.fromhex(signature_hex)
         return vk.verify(sig, data)
-    except ecdsa.BadSignatureError:
+    except (ValueError, ecdsa.BadSignatureError):
         return False

@@ -28,7 +28,7 @@ class Transaction:
     outputs: List[TxOutput]
     txid: str = ""
     is_coinbase: bool = False
-    timestamp: int = field(default_factory=lambda: int(time.time()))
+    timestamp: float = field(default_factory=time.time)
 
     def to_dict(self):
         return {

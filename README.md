@@ -38,7 +38,7 @@ A fully functional, educational implementation of a Bitcoin-like blockchain in P
 
 2. **Install dependencies**
    ```bash
-   pip install flask requests ecdsa
+   pip install -r requirements.txt
    ```
 
 ### Running the Node
@@ -76,6 +76,14 @@ python3 wallet_cli.py --node http://localhost:8005 send <private_key> <recipient
 
 # View chain info
 python3 wallet_cli.py --node http://localhost:8005 chain
+```
+
+## Testing
+
+Run the validation test suite with:
+
+```bash
+python3 -m pytest -q
 ```
 
 ## Architecture 🏗️
